@@ -1,54 +1,23 @@
+#required imports
 import os
 
 import librosa
+
 import torch
-from torch import tensor
-from speechbrain.pretrained import SepformerSeparation as separator
 import torchaudio
+from torch import tensor
+
+from speechbrain.pretrained import SepformerSeparation as separator
+
 from torchmetrics.audio import ScaleInvariantSignalNoiseRatio
 from torchmetrics.audio import SignalDistortionRatio
 
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 
+#helper functions
 
-# class AudioDataset(Dataset):
-#     def __init__(self, root):
-
-#         self.root = root
-#         self.src1, self.src2, self.labels = self.read_data()
-
-#     def read_data(self):
-#         src1 = []
-#         src2 = []
-#         labels = []
-
-#         datafile = open(self.root, 'r')
-#         for dataline in datafile:
-#             dataline = dataline.strip().split()
-#             src1.append(dataline[1])
-#             src2.append(dataline[2])
-#             labels.append(dataline[0])
-        
-#         return src1, src2, labels
-    
-#     def __getitem__(self, idx):
-#         src1, src1_samplingrate = torchaudio.load(os.path.join("/DATA/arora8/SpeechUnderstanding/PA2/Q1/voxceleb1/wav/", self.src1[idx]))
-#         src2, src2_samplingrate = torchaudio.load(os.path.join("/DATA/arora8/SpeechUnderstanding/PA2/Q1/voxceleb1/wav/", self.src2[idx]))
-
-#         if src1.size(1) < 16000:
-#             src1 = pad(src1, (0, 16000 - src1.size(1)))
-#         elif:
-#             src1 = src1[:, :16000]
-        
-#         if src2.size(1) < 16000:
-#             src2 = pad(src2, (0, 16000 - src2.size(1)))
-#         elif:
-#             src2 = src2[:, :16000]
-        
-#         return src1[0], src2[0], self.labels[idx]
-
-
+#dataloader
 class AudioDataset(Dataset):
     def __init__(self, root):
 
@@ -104,19 +73,22 @@ class AudioDataset(Dataset):
         return mixed[0], src1[0], src2[0]
 
 
+#initialise dataloader
 dataset = AudioDataset("/DATA/arora8/SpeechUnderstanding/PA2/Q2/LibriMix/storage_dir/Libri2Mix/wav16k/max/test")
 dataloader = DataLoader(dataset, batch_size=2)
 
-
+#initialise model
 model = separator.from_hparams(source="speechbrain/sepformer-whamr", savedir='pretrained_models/sepformer-whamr')
 
+#calculate metrics
 SISNR = ScaleInvariantSignalNoiseRatio()
 SISDR = SignalDistortionRatio()
 
+sisnr_batch = []
+sisdr_batch = []
+
 for mixed, src1, src2 in dataloader:
-    print("Inside loop")
     est_sources = model.separate_batch(mixed) 
-    # print(est_sources[:,:,0], est_sources[:,:,1])
 
     SISNR_og = SISNR(est_sources[:,:,0], mixed) + SISNR(est_sources[:,:,1], mixed)
     SISDR_og = SISDR(est_sources[:,:,0], mixed) + SISDR(est_sources[:,:,1], mixed)
@@ -130,4 +102,10 @@ for mixed, src1, src2 in dataloader:
     SISNR_i = SISNR_i.mean().item()/2
     SISDR_i = SISDR_i.mean().item()/2
 
-    print(SISNR_i, SISDR_i)
+    #print(SISNR_i, SISDR_i)
+
+    sisnr_batch.append(SISDR_i)
+    sisdr_batch.append(SISDR-i)
+
+print("SISNR:", sum(sisnr_batch)/len(sisnr_batch))
+print("SISDR:", sum(sisdr_batch)/len(sisdr_batch))
