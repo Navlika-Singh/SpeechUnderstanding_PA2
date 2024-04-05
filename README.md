@@ -25,7 +25,9 @@ Now, for each question the required model checkpoints must be downloaded and loc
 
 - For question 02, sepformer is downloaded following the instructions provided in the assignment itself.
 
-Please note that each model of question 01 has it package requirements provided on its official github repository (requirements.txt) which should be loaded for its successful execution.
+Please note that each model of question 01 has it package requirements provided on its official github repository (requirements.txt) which should be loaded for its successful execution. 
+
+Also, a few folders (for example 'speechbrain') will be downloaded in the appropriate location following the imports and instructions mentioned in the assignment.
 
 ### Instructions
 
