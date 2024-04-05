@@ -49,6 +49,9 @@ Now, note the following set of instructions for the successful reproduction of p
 - The fine-tune of the sepformer can be done by utilizing the official github repository of the model.
 - Analysis of results along with plausible reasons for the observed outcomes is mentioned in the report.
 
+#### For gradio
+Now, to generate the 'Gradio link' for the trained model to evaluate the trained model on the browser please run the 'gradio_q1.py' and 'gradio_q2.py' files for question 01 and question 02 respectively. Please note to provide a valid checkpoint path for the successful execution of the code file.
+
 
 NOTE: Please contact the author in case of any discrepancy.
 
