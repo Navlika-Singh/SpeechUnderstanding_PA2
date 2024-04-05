@@ -1,35 +1,27 @@
+#required imports
 import os
 
 import torch
 from torch import tensor
 import torchaudio
+import numpy as np
+
 import librosa
+
 from torchaudio.datasets import VoxCeleb1Verification
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
+
 from torch.nn.functional import pad
 from scipy.optimize import brentq
 from scipy.interpolate import interp1d
 from sklearn.metrics import confusion_matrix
 from sklearn import metrics
-import numpy as np
+
 
 #helper functions
 
 #calculate eer
-# def calculate_eer_percentage(true_labels, predictions):
-#     cm = confusion_matrix(true_labels, predictions)
-#     print(cm)
-#     tn, fp, fn, tp = cm[0][0], cm[0][1], cm[1][0], cm[1][1]
-
-#     far = fp / (fp + tn)  # False Acceptance Rate (FAR)
-#     frr = fn / (fn + tp)  # False Rejection Rate (FRR)
-
-#     eer = (far + frr) / 2
-#     eer_percentage = eer * 100
-
-#     return eer_percentage
-
 def calculate_eer_percentage(labels, preds):
     fpr, tpr, thresholds = metrics.roc_curve(labels, preds, pos_label=1)
     eer = brentq(lambda x: 1. - x - interp1d(fpr, tpr)(x), 0., 1.)
@@ -44,7 +36,6 @@ from torchaudio.transforms import Resample
 from models.ecapa_tdnn import ECAPA_TDNN_SMALL
 
 MODEL_LIST = ['ecapa_tdnn', 'hubert_large', 'wav2vec2_xlsr', 'unispeech_sat', "wavlm_base_plus", "wavlm_large"]
-
 
 def init_model(model_name, checkpoint=None):
     if model_name == 'unispeech_sat':
@@ -73,14 +64,6 @@ def init_model(model_name, checkpoint=None):
 
 def verification(model,  wav1, wav2, use_gpu=True, checkpoint=None):
 
-    # assert model_name in MODEL_LIST, 'The model_name should be in {}'.format(MODEL_LIST)
-    # model = init_model(model_name, checkpoint)
-
-    # wav1, sr1 = sf.read(wav1)
-    # wav2, sr2 = sf.read(wav2)
-
-    # wav1 = torch.from_numpy(wav1).unsqueeze(0).float()
-    # wav2 = torch.from_numpy(wav2).unsqueeze(0).float()
     resample1 = Resample(orig_freq=16000, new_freq=16000)
     resample2 = Resample(orig_freq=16000, new_freq=16000)
     wav1 = resample1(wav1)
@@ -100,32 +83,7 @@ def verification(model,  wav1, wav2, use_gpu=True, checkpoint=None):
     print("The similarity score between two audios is {:.4f} (-1.0, 1.0).".format(sim[0].item()))
     return sim
 
-
-class AudioDataset(Dataset):
-    def __init__(self, length, num_samples, fixed_length):
-        self.length = length
-        self.num_samples = num_samples
-        self.fixed_length = fixed_length
-
-    def __len__(self):
-        return self.length
-
-    def __getitem__(self, idx):
-        # Generate random audio samples
-        audio1 = torch.randn(self.fixed_length)
-        audio2 = torch.randn(self.fixed_length)
-        
-        # Generate a random label
-        label = torch.randint(0, 2, (1,), dtype=torch.long)
-        
-        return audio1, audio2, label
-
-
-length = 1000  # Number of samples in the dataset
-num_samples = 2  # Number of random audio samples to return per item
-fixed_length = 44100  # Fixed length of each random audio sample
-
-
+#dataloader
 class AudioDataset(Dataset):
     def __init__(self, root):
 
@@ -194,14 +152,15 @@ class AudioDataset(Dataset):
         
         return src1[0], src2[0], self.labels[idx]
 
-
-# dataset = AudioDataset(root="/DATA/arora8/SpeechUnderstanding/PA2/Q1/voxceleb1")
+#initialise dataloader
+dataset = AudioDataset(root="/DATA/arora8/SpeechUnderstanding/PA2/Q1/kathbath")
 dataloader = DataLoader(dataset, batch_size=2)
 
-
+#initialise model
 model = init_model("wavlm_base_plus", checkpoint="/DATA/arora8/SpeechUnderstanding/PA2/Q1/checkpoints/wavelmbase+/WavLM-Base+.pt")
 model.eval()
 
+#calculate eer values
 eer_batchwise = []
 
 for i, data in enumerate(dataloader):
